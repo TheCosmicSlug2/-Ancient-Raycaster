@@ -2,6 +2,8 @@
 
 A simple recreation of an old 3D Engine.
 
+Requirements : pygame
+
 
 ------ Controls ------
 
