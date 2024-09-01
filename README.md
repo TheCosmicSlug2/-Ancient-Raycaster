@@ -9,6 +9,9 @@ Requirements : pygame
 
 ZQSD to move
 
-"m" to toggle minimap
+"m" to show/hide minimap
 
-"l" to hide minimap
+"esc" to show/hide mouse
+
+"c" to toggle command mode
+
