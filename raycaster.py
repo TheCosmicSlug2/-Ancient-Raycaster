@@ -13,6 +13,7 @@ class Raycaster:
         self.player = player
         self.level_master = level_master
         self.renderer = renderer
+        self.green_wall_ray_counter = 0
 
         self.rays_final_pos = []
 
@@ -33,7 +34,9 @@ class Raycaster:
                 map_data=self.level_master.map_data, 
                 map_data_dims=self.level_master.map_data_dims)
             
-            if wall_color_collided_with != 0:            
+            if wall_color_collided_with != 0:        
+                if wall_color_collided_with == 5:
+                    self.green_wall_ray_counter += 1    
                 if map_shown:
                     self.rays_final_pos.append(collide_pos)
                 corrected_distance = max(0.001, distance * angle_radians)  # Correction anti-fisheye
@@ -43,6 +46,7 @@ class Raycaster:
 
 
     def raycast(self, fov: tuple, map_shown) -> tuple:
+        self.green_wall_ray_counter = 0
         raycast_distances = []
         wall_colors = []
         start_angle, end_angle = fov
@@ -52,6 +56,7 @@ class Raycaster:
             raycast_distances.append(ray_info[0])
             wall_colors.append(ray_info[1])
             start_angle += self.resolution
+        
         return raycast_distances, wall_colors
     
 
