@@ -2,23 +2,26 @@ from settings import *
 from physics import Physics
 
 class Player:
-    def __init__(self, spawn_type, level_master):
+    def __init__(self, level_master):
         self.level_master = level_master
         self.physics = Physics()
         self.dims = PLAYER_DIMS
         self.angle = 0
-        self.posx = 0
-        self.posy = 0
+        self.posx = level_master.player_starting_pos[0] * CELL_DIMS[0]
+        self.posy = level_master.player_starting_pos[1] * CELL_DIMS[1]
         self.rect_sprite = None
 
         # On essaye de le faire apparaître à un endroit quasirandom, sinon on le force au centre
 
+        """
         if spawn_type == "random":
             if not self.spawn_player_random():
                 self.spawn_player_center()
 
         else:
+        
             self.spawn_player_center()
+        """
 
 
     def spawn_player_random(self):
