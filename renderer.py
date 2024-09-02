@@ -1,59 +1,121 @@
-
-# Game settings :
-
-BLACK = (0, 0, 0)
-DARKGRAY = (100, 100, 100)
-LIGHTGRAY = (200, 200, 200)
-WHITE2 = (230, 230, 230)
-WHITE1 = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-dic_colors = {0: None, 1: BLACK, 2: WHITE2, 3: RED, 4: BLUE, 5: GREEN}
+import pygame as pg
+from settings import *
 
 
-DEFAULT_SCREEN_DIMS = (800, 600)
+class Renderer:
+    def __init__(self, level_master) -> None:
+        self.level_master = level_master
+        self.SCREEN = pg.display.set_mode(SCREEN_DIMS)
+        self.clock = pg.time.Clock()
+        pg.display.set_caption("2.5D")
 
-grid_dims = (100, 100)
+        pg.font.init()
+        self.font = pg.font.SysFont('Arial', 30)
 
-
-SCREEN_DIMS = DEFAULT_SCREEN_DIMS
-
-HALF_SCREEN_DIMS = (SCREEN_DIMS[0] // 2, SCREEN_DIMS[1] // 2) # Dimensions de moitié d'écran
-
-
-CELL_DIMS = (SCREEN_DIMS[0] // grid_dims[0], SCREEN_DIMS[1] // grid_dims[1])
-
-average_cell_size = (CELL_DIMS[0] + CELL_DIMS[1]) // 2
-
-# Commandes :
-command_mode = False
-command_input = ""
+        self.render_background_command()
+        self.render_minimap()
+        self.render_3D_background()
 
 
-# Joueur :
-PLAYER_SPAWN_TYPE = "random"
-player_side_size = max(1, (average_cell_size // 3))
-PLAYER_DIMS = (player_side_size, player_side_size)
-PLAYER_SPEED = max(1, average_cell_size / 10)
+    def render_background_command(self):
+        self.background_command = pg.Surface(SCREEN_DIMS)
+        self.background_command.fill(BLACK)
+        # Créer une surface de texte
+        text = "Exécutez la commande dans le cmd"
+        text_color = GREEN
+        text_surface = self.font.render(text, True, text_color)
+
+        # Définir la position du texte
+        text_rect = text_surface.get_rect()
+        text_rect.center = (self.background_command.get_width() // 2, self.background_command.get_height() // 2)
+        self.background_command.blit(text_surface, text_rect)
 
 
-RAY_DIMS = (3, 3)
+    def render_3D_background(self):
+        self._3D_background = pg.Surface(SCREEN_DIMS)
 
-# Raycaster :
-RAYCASTER_SIZE = 3
-RAYCASTER_RES = 1
-RAYCASTER_MAX_DST = average_cell_size * 10
-RAYCASTER_GAP = 1
+        up_rect = pg.Rect(0, 0, SCREEN_DIMS[0], HALF_SCREEN_DIMS[1])
+        down_rect = pg.Rect(0, HALF_SCREEN_DIMS[1], SCREEN_DIMS[0], HALF_SCREEN_DIMS[1])
+
+        pg.draw.rect(self._3D_background, LIGHTGRAY, up_rect)
+        pg.draw.rect(self._3D_background, DARKGRAY, down_rect)
+    
+
+    def render_3D_foreground(self, liste_raycast: list, wall_colors: list):
+        """ Dessine en 3D avec une liste des distances + "couleurs" pour chque distance """
+
+        default_wall_height = 5000 # Constante pour dimensionner les murs
+
+        self._3D_foreground = pg.Surface(SCREEN_DIMS)
+
+        # Mettre l'arrière plan 3d
+        self._3D_foreground.blit(self._3D_background, (0, 0))
+
+        nb_of_rays = len(liste_raycast)
+        ray_width = SCREEN_DIMS[0] / nb_of_rays
 
 
-# FOV_MAX pour calculer la FOV
-FOV_MAX = 60  # Plus réaliste pour réduire l'effet fisheye
-HALF_FOV = FOV_MAX // 2
+        for ray_idx, ray_dst in enumerate(liste_raycast):
+            if ray_dst is None:  # ne pas dessiner les rayons qui vont à l'infini
+                continue
 
-FPS = 30
+            # Calculer la hauteur à l'écran du mur
+            wall_height = default_wall_height / ray_dst
+
+            # Calculer la position et la largeur du rayon en flottant
+            ray_x = ray_idx * ray_width
+            ray_x_int = int(ray_x)
+            next_ray_x_int = int(ray_x + ray_width)
+
+            # Calculer la largeur en pixels
+            ray_width_int = next_ray_x_int - ray_x_int
+
+            # Calculer la couleur
+            wall_color = dic_colors[wall_colors[ray_idx]]
+
+            wall_color_with_shades = (max(0, wall_color[0] - ray_dst), max(0, wall_color[1] - ray_dst), max(0, wall_color[2] - ray_dst))
+
+            # Dessiner le mur
+            wall_slice = pg.Rect(ray_x_int, HALF_SCREEN_DIMS[1] - int(wall_height / 2), ray_width_int, int(wall_height))
+            pg.draw.rect(self._3D_foreground, wall_color_with_shades, wall_slice)
 
 
-ticks_to_update_map = FPS // 3
-ticks_to_update_mouse = FPS // 3
 
+    def render_minimap(self):
+        self.minimap = pg.Surface(SCREEN_DIMS)
+        self.minimap.fill(WHITE1)
+
+        for idx_row, row in enumerate(self.level_master.map_data):
+            for idx_column, column in enumerate(row):
+
+                if column == 0:
+                    continue
+
+                rect_color = dic_colors[column]
+                rect = pg.Rect(idx_column * CELL_DIMS[0], idx_row * CELL_DIMS[1], CELL_DIMS[0], CELL_DIMS[1])
+                pg.draw.rect(self.minimap, rect_color, rect)
+    
+    def show_minimap(self):
+        self.SCREEN.blit(self.minimap)
+
+    def render_minimap_on_screen(self, player, raycaster):
+
+        # Render les rays
+        self.SCREEN.blit(self.minimap, (0, 0))
+
+        for ray_pos in raycaster.rays_final_pos:
+            pg.draw.rect(self.SCREEN, BLUE, pg.Rect(ray_pos[0], ray_pos[1], RAY_DIMS[0], RAY_DIMS[1]))
+
+        # Render le joueur
+        pg.draw.rect(self.SCREEN, BLACK, pg.Rect(player.posx, player.posy, PLAYER_DIMS[0], PLAYER_DIMS[1]))
+    
+    def render_command_background_on_screen(self):
+        self.SCREEN.blit(self.background_command, (0, 0))
+    
+    def render_3D_foreground_on_screen(self):
+        self.SCREEN.blit(self._3D_foreground, (0, 0))
+    
+
+    def update(self):
+        pg.display.flip()
+        self.clock.tick(FPS)
