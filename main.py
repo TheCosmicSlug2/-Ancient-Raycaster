@@ -20,7 +20,7 @@ def main():
     level_master = LevelMaster()
     renderer = Renderer(level_master=level_master)
 
-    player = Player(spawn_type=PLAYER_SPAWN_TYPE, level_master=level_master)
+    player = Player(level_master=level_master)
 
     raycaster = Raycaster(player=player, level_master=level_master, renderer=renderer)
 
@@ -94,6 +94,10 @@ def main():
         # Raycasting et dessin
         liste_raycast_dst, liste_wall_colors = raycaster.raycast(fov=FOV, map_shown=state_master.map_shown)
 
+        if raycaster.green_wall_ray_counter > HALF_FOV:
+            #game_running = False
+            print(f"Vous avez trouvé la sortie avec {raycaster.green_wall_ray_counter}")
+
         if state_master.map_shown:
             renderer.render_minimap_on_screen(player, raycaster)
         else:
@@ -102,6 +106,7 @@ def main():
         
         renderer.update()
         state_master.update()
+        
 
     pg.quit()
 
