@@ -14,7 +14,7 @@ dic_colors = {0: None, 1: BLACK, 2: WHITE2, 3: RED, 4: BLUE, 5: GREEN}
 
 DEFAULT_SCREEN_DIMS = (800, 600)
 
-grid_dims = (100, 100)
+grid_dims = (20, 20)
 
 
 SCREEN_DIMS = DEFAULT_SCREEN_DIMS
